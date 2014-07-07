@@ -15,7 +15,8 @@ suppressPackageStartupMessages({
 
 set.seed(0)
 
-data(CES2, package="CalEnviroScreen")
+data(CalEnviroScreen2, package="CalEnviroScreen")
+data(California, package="CalEnviroScreen")
 
 theme_set(theme_bw())
 theme_update(
@@ -33,9 +34,8 @@ scale_y_score <- function (...) scale_y_continuous(..., limits=c(0, 10), expand=
 
 region_colors <- c(`Bay Area`="#009E73", `South Coast`="#0072B2", `San Joaquin`="#D55E00", `Other`="#999999")
 
-tract_tbl <- as.tbl(subset(CES2_tracts@data, select=c("FIPS", "Region")))
+tract_tbl <- select(tract_regions, FIPS, Region)
 with_region <- function (x) inner_join(x, tract_tbl, by="FIPS")
-
 
 ###############################################################################
 # Define server logic
