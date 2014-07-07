@@ -1,0 +1,8 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+cache
+inst/doc
+inst/extdata
+rawdata
+slides
+analyses
