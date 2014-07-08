@@ -133,7 +133,7 @@ shinyServer(function(input, output) {
       geom_bar(aes(fill=Impacted), stat="identity") + 
       scale_fill_manual(values=c(gray(0.7), gray(0.4))) +
       scale_y_continuous(limits=c(0, 4500), expand=c(0, 0)) +
-      geom_text(aes(y=Tracts, label=Yes), data=.tally(), vjust=-0.5) + 
+      geom_text(aes(y=Tracts, label=str_c(percent(round(Yes/Tracts, 2)), " (n=", Yes, ")")), data=.tally(), vjust=-0.5) + 
       theme(legend.position="none", axis.title=element_blank())
   })
   
