@@ -37,6 +37,14 @@ region_colors <- c(`Bay Area`="#009E73", `South Coast`="#0072B2", `San Joaquin`=
 tract_tbl <- select(tract_regions, FIPS, Region)
 with_region <- function (x) inner_join(x, tract_tbl, by="FIPS")
 
+CA_tracts$FIPS <- row.names(CA_tracts)
+BayArea_tracts <- gBuffer(subset(merge(CA_tracts, tract_tbl, by="FIPS"), Region == "Bay Area"), width=0.001, byid=TRUE)
+BayArea_region <- gUnaryUnion(BayArea_tracts)
+
+POPCHAR_VARS <- c("Age", "Asthma", "LBW", "Edu", "LingIso", "Pov", "Unemp")
+POLLUTION_VARS <- c("Ozone", "PM25", "DieselPM", "DrinkWat", "PestUse", "ToxRel", 
+                    "Traffic", "Cleanup", "GndWat", "HazWst", "WatBod", "SolWst")
+
 ###############################################################################
 # Define server logic
 ###############################################################################
@@ -54,7 +62,9 @@ shinyServer(function(input, output) {
       Edu=input$Edu, LingIso=input$LingIso, Pov=input$Pov, Unemp=input$Unemp)
   })
   
-  .impacted_percentile <- reactive(100 - input$impacted_percentile) # reverse the scale
+  .impacted_percentile <- reactive({
+    100 - input$impacted_percentile # reverse the scale
+  })
   
   .subscores <- reactive({
     CES2_data %>%
@@ -63,12 +73,18 @@ shinyServer(function(input, output) {
       mutate(Weight = .weights()[Variable]) %>%
       group_by(FIPS, Group) %>%
       compute_CES2_subscores(min_obs = 1) %>%
-      spread(Group, Score) %>%
-      arrange(desc(Pollution))
+      spread(Group, Subscore)
   })
   
   .scores <- reactive({
-    .subscores() %>% 
+    subscore_data <- .subscores() 
+    if (is.null(subscore_data$PopChar)) {
+      subscore_data$PopChar <- 1
+    } else {
+      if (is.null(subscore_data$Pollution)) 
+        subscore_data$Pollution <- 1 
+    }
+    subscore_data %>% 
       compute_CES2_scores() %>%
       filter(!is.na(Score)) %>%
       arrange(desc(Score)) %>%
@@ -121,13 +137,35 @@ shinyServer(function(input, output) {
       theme(legend.position="none", axis.title=element_blank())
   })
   
+  plot_map <- function (x, ...) plot(x, col=gray(0.9), border=NA, ...)
+  
+  plot_tracts <- function (x, ..., color=gray(0.5)) {
+    i <- which(with(x@data, ...))
+    plot(x[i,], col=color, border=NA, add=TRUE)
+  }
+  
+  .impacted_scores <- reactive({
+    .scores() %>% filter(Percentile > .impacted_percentile())
+  })
+  
+  .map_BayArea <- reactive({
+    i <- intersect(row.names(BayArea_tracts), .impacted_scores()$FIPS)
+    par(mar=c(0.1, 0.1, 0.1, 0.1))
+    plot(BayArea_tracts[i, ], col=gray(0), border=NA)
+    plot(BayArea_region, col="#88888888", border=NA, add=TRUE)
+    dev.off()
+  })
+  
   output$tally <- renderDataTable(.tally())
+  
+  output$map_BayArea <- renderPlot(show(.map_BayArea()), height=600)
   
   output$scatterplot <- renderPlot(show(.scatterplot()))
   
   output$barchart <- renderPlot(show(.barchart()))
 
-  output$data <- renderDataTable(.scores() %>% select(FIPS, Pollution, PopChar, Score, Pctl=Percentile, PctlRange=PercentileRange), 
+  output$data <- renderDataTable(.impacted_scores() %>% 
+                                   select(FIPS, Pollution, PopChar, Score, Pctl=Percentile, PctlRange=PercentileRange), 
                                  options = list(bSortClasses=TRUE, iDisplayLength=10))
   
 })

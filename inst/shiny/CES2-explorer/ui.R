@@ -1,6 +1,6 @@
 library(shiny)
 
-weightInput <- function (inputId, label=inputId, value=1.0, ...) {
+weightInput <- function (inputId, label=paste0(inputId, ":"), value=1.0, ...) {
   sliderInput(inputId, label, value=value, min=0, max=1, step=0.1, ...)
 }
 
@@ -18,15 +18,18 @@ bootstrapPage(
     headerPanel("CalEnviroScreen 2.0 Explorer"),
     
     sidebarPanel(
-      multiSelectInput("pollution_vars", "Pollution variables:", choices = POLLUTION_VARS),
-      multiSelectInput("popchar_vars", "Population variables:", choices = POPCHAR_VARS),
-      sliderInput("impacted_percentile", "Impacted (%):", min=0, max=100, value=20, step=5)
+      multiSelectInput("pollution_vars", "Pollution burden:", choices = POLLUTION_VARS),
+      multiSelectInput("popchar_vars", "Population characteristics:", choices = POPCHAR_VARS),
+      sliderInput("impacted_percentile", "Impacted (% statewide):", min=5, max=95, value=20, step=5)
     ),
     
     mainPanel(
       tabsetPanel(
         
-        tabPanel("Tally", 
+        tabPanel("Bay Area", 
+                 plotOutput("map_BayArea", height="100%")),      
+        
+        tabPanel("Regional", 
                  plotOutput("barchart")),      
         
         tabPanel("Scatterplot", 
@@ -44,28 +47,23 @@ bootstrapPage(
                    column(3,
                           h4("Exposure"),
                           weightInput("Ozone"), weightInput("PM25"), weightInput("DieselPM"),
-                          weightInput("DrinkWat"), weightInput("PestUse"), weightInput("ToxRel"), weightInput("Traffic")),
+                          weightInput("DrinkWat"), weightInput("PestUse"), weightInput("ToxRel"), 
+                          weightInput("Traffic")),
                    
                    column(3,
                           h4("Environment"),
-                          weightInput("Cleanup",  "Cleanup:",         value=0.5),
-                          weightInput("GndWat",   "GndWat:",           value=0.5),
-                          weightInput("HazWst",   "HazWst:",       value=0.5),
-                          weightInput("WatBod",   "WatBod:",          value=0.5),
-                          weightInput("SolWst",   "SolWst:",           value=0.5)),
+                          weightInput("Cleanup", value=0.5), weightInput("GndWat", value=0.5),
+                          weightInput("HazWst", value=0.5), weightInput("WatBod", value=0.5),
+                          weightInput("SolWst", value=0.5)),
                    
                    column(3,
                           h4("Sensitivity"),
-                          weightInput("Age",      "Age:"),
-                          weightInput("Asthma",   "Asthma:"),
-                          weightInput("LBW",      "Low birth weight:")),
+                          weightInput("Age"), weightInput("Asthma"), weightInput("LBW")),
                    
                    column(3,
                           h4("Socioecon"),
-                          weightInput("Edu",      "Education:"),
-                          weightInput("LingIso",  "Linguistic isolation:"),
-                          weightInput("Pov",      "Poverty:"),
-                          weightInput("Unemp",    "Unemployment:")))),
+                          weightInput("Edu"), weightInput("LingIso"),
+                          weightInput("Pov"), weightInput("Unemp")))),
         
         tabPanel("Data", 
                  dataTableOutput("data"))
