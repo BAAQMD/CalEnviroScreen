@@ -35,7 +35,7 @@ bootstrapPage(
         tabPanel("Scatterplot", 
                  fluidRow(
                    column(9,
-                          plotOutput("scatterplot")),
+                          plotOutput("scatterplot", height="100%")),
                    column(3,
                           br(),
                           checkboxInput("DensityPath", "Contours", value=FALSE),
