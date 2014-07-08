@@ -15,7 +15,7 @@ weighted_average <- function (x, w, na.rm=TRUE) {
 compute_CES2_subscores <- function (.data, min_obs=4, ...) {
   .data %>% 
     filter(!is.na(Percentile)) %>%
-    summarise(Score = ifelse(n() < min_obs, NA, weighted_average(Percentile, Weight) / 10))
+    summarise(Subscore = ifelse(n() < min_obs, NA, weighted_average(Percentile, Weight) / 10))
 }
 
 #' To normalize a vector
