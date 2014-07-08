@@ -1,5 +1,6 @@
 library(CalEnviroScreen)
 library(dplyr)
+library(tidyr)
 
 data(CalEnviroScreen2, package="CalEnviroScreen")
 
