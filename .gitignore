@@ -4,3 +4,6 @@
 cache
 slides
 .bak
+inst/doc
+inst/extdata
+rawdata/
