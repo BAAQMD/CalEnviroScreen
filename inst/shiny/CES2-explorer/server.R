@@ -39,7 +39,10 @@ POPCHAR_VARS <- c("Age", "Asthma", "LBW", "Edu", "LingIso", "Pov", "Unemp")
 POLLUTION_VARS <- c("Ozone", "PM25", "DieselPM", "DrinkWat", "PestUse", "ToxRel", 
                     "Traffic", "Cleanup", "GndWat", "HazWst", "WatBod", "SolWst")
 
-with_region <- function (.data) .data %>% inner_join(tract_tbl, by = "FIPS")
+tract_tbl <- select(tract_regions, FIPS, Region)
+with_region <- function (.data) {
+  .data %>% inner_join(tract_tbl, by = "FIPS")
+}
 
 ###############################################################################
 # Define server logic
