@@ -10,8 +10,8 @@ library(testthat)
 computed_subscores <- CES2_data %>%
     inner_join(CES2_metadata, by = "Variable") %>%
     group_by(FIPS, Group) %>%
-    compute_CES2_subscores() %>%
-    spread(Group, Score) %>%
+    compute_CES2_subscores(min_obs = 4) %>%
+    spread(Group, Subscore) %>%
     arrange(desc(Pollution))
 
 expected_subscores <- as.tbl(CES2_xls) %>% 
