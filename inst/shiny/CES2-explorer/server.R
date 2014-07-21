@@ -10,6 +10,7 @@ suppressPackageStartupMessages({
   library(plyr)
   library(dplyr)
   library(ggvis)
+  library(shinyIncubator)
   library(CalEnviroScreen)
 })
 
@@ -34,32 +35,40 @@ scale_y_score <- function (...) scale_y_continuous(..., limits=c(0, 10), expand=
 
 region_colors <- c(`Bay Area`="#009E73", `South Coast`="#0072B2", `San Joaquin`="#D55E00", `Other`="#999999")
 
-tract_tbl <- select(tract_regions, FIPS, Region)
-with_region <- function (x) inner_join(x, tract_tbl, by="FIPS")
-
-CA_tracts$FIPS <- row.names(CA_tracts)
-BayArea_tracts <- gBuffer(subset(merge(CA_tracts, tract_tbl, by="FIPS"), Region == "Bay Area"), width=0.001, byid=TRUE)
-BayArea_region <- gUnaryUnion(BayArea_tracts)
-
 POPCHAR_VARS <- c("Age", "Asthma", "LBW", "Edu", "LingIso", "Pov", "Unemp")
 POLLUTION_VARS <- c("Ozone", "PM25", "DieselPM", "DrinkWat", "PestUse", "ToxRel", 
                     "Traffic", "Cleanup", "GndWat", "HazWst", "WatBod", "SolWst")
+
+with_region <- function (.data) .data %>% inner_join(tract_tbl, by = "FIPS")
 
 ###############################################################################
 # Define server logic
 ###############################################################################
 
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
   
-  .variables <- reactive({
-    union(input$pollution_vars, input$popchar_vars)
+  .map_tracts <- reactive({
+    subset(CA_tracts, Region == input$region_name)
+    #gBuffer(unbuffered, width = 0.001, byid = TRUE)
   })
   
-  .weights <- reactive({
+  .map_region <- reactive({
+    CA_regions[[input$region_name]]
+    #gUnionCascaded(.map_tracts())
+    #gUnaryUnion(.map_tracts())
+  })
+  
+  .variables <- reactive({
+    c(input$pollution_vars, input$popchar_vars)
+  })
+  
+  .pollution_weights <- reactive({
     c(Ozone=input$Ozone, PM25=input$PM25, DieselPM=input$DieselPM, DrinkWat=input$DrinkWat, PestUse=input$PestUse, ToxRel=input$ToxRel, Traffic=input$Traffic,
-      Cleanup=input$Cleanup, GndWat=input$GndWat, HazWst=input$HazWst, WatBod=input$WatBod, SolWst=input$SolWst,
-      Age=input$Age, Asthma=input$Asthma, LBW=input$LBW,
-      Edu=input$Edu, LingIso=input$LingIso, Pov=input$Pov, Unemp=input$Unemp)
+      Cleanup=input$Cleanup, GndWat=input$GndWat, HazWst=input$HazWst, WatBod=input$WatBod, SolWst=input$SolWst)
+  })
+  
+  .popchar_weights <- reactive({
+      c(Age=input$Age, Asthma=input$Asthma, LBW=input$LBW, Edu=input$Edu, LingIso=input$LingIso, Pov=input$Pov, Unemp=input$Unemp)
   })
   
   .impacted_percentile <- reactive({
@@ -67,10 +76,13 @@ shinyServer(function(input, output) {
   })
   
   .subscores <- reactive({
+    w <- c(.pollution_weights(), .popchar_weights())
+    weight_tbl <- as.tbl(data.frame(Variable = names(w), Weight = w))
+    group_tbl <- select(CES2_metadata, Variable, Group)
     CES2_data %>%
-      inner_join(CES2_metadata, by = "Variable") %>%
       filter(Variable %in% .variables()) %>%
-      mutate(Weight = .weights()[Variable]) %>%
+      inner_join(weight_tbl, by = "Variable") %>%
+      inner_join(group_tbl, by = "Variable") %>%
       group_by(FIPS, Group) %>%
       compute_CES2_subscores(min_obs = 1) %>%
       spread(Group, Subscore)
@@ -86,7 +98,6 @@ shinyServer(function(input, output) {
     }
     subscore_data %>% 
       compute_CES2_scores() %>%
-      filter(!is.na(Score)) %>%
       arrange(desc(Score)) %>%
       with_region()
   })
@@ -99,7 +110,7 @@ shinyServer(function(input, output) {
   .tally <- reactive({
     .scores() %>% 
       group_by(Region) %>% 
-      summarise(Tracts=n(), No=sum(Percentile < .impacted_percentile()), Yes=Tracts-No)
+      summarise(Tracts=n(), Yes=sum(Percentile > .impacted_percentile(), na.rm=TRUE), No=Tracts-Yes)
   })
   
   .scatterplot <- reactive({
@@ -122,7 +133,8 @@ shinyServer(function(input, output) {
     if (input$DensityFill) {
       fig <- fig + stat_density2d(aes(fill=Region), alpha=I(0.03), color=NA, geom="polygon", subset=.(Region != "Other"))
     }
-    fig + theme(legend.position="bottom", legend.direction="horizontal")
+    fig <- fig + theme(legend.position="bottom", legend.direction="horizontal")
+    return(fig)
   })
   
   .barchart <- reactive({
@@ -148,17 +160,21 @@ shinyServer(function(input, output) {
     .scores() %>% filter(Percentile > .impacted_percentile())
   })
   
-  .map_BayArea <- reactive({
-    i <- intersect(row.names(BayArea_tracts), .impacted_scores()$FIPS)
-    par(mar=c(0.1, 0.1, 0.1, 0.1))
-    plot(BayArea_tracts[i, ], col=gray(0), border=NA)
-    plot(BayArea_region, col="#88888888", border=NA, add=TRUE)
-    dev.off()
+  .map <- reactive({
+    withProgress(session, {
+      setProgress(message = "Calculating, please wait",
+                  detail = "This may take a few moments...")
+      i <- intersect(row.names(.map_tracts()), .impacted_scores()$FIPS)
+      par(mar=c(0.1, 0.1, 0.1, 0.1))
+      plot(.map_tracts()[i, ], col=gray(0), border=NA)
+      plot(.map_region(), col="#88888888", border=NA, add=TRUE)
+      dev.off()
+    })
   })
   
   output$tally <- renderDataTable(.tally())
   
-  output$map_BayArea <- renderPlot(show(.map_BayArea()), height=600)
+  output$map <- renderPlot(show(.map()), height=500)
   
   output$scatterplot <- renderPlot(show(.scatterplot()))
   

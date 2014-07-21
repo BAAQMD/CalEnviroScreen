@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyIncubator)
 
 weightInput <- function (inputId, label=paste0(inputId, ":"), value=1.0, ...) {
   sliderInput(inputId, label, value=value, min=0, max=1, step=0.1, ...)
@@ -8,6 +9,7 @@ multiSelectInput <- function (inputId, label, choices, ...) {
   selectInput(inputId, label, choices, selected=choices, multiple=TRUE, ...)
 }
 
+REGION_NAMES <- c("San Joaquin", "South Coast", "Bay Area", "Other")
 POPCHAR_VARS <- c("Age", "Asthma", "LBW", "Edu", "LingIso", "Pov", "Unemp")
 POLLUTION_VARS <- c("Ozone", "PM25", "DieselPM", "DrinkWat", "PestUse", "ToxRel", 
                     "Traffic", "Cleanup", "GndWat", "HazWst", "WatBod", "SolWst")
@@ -24,18 +26,20 @@ bootstrapPage(
     ),
     
     mainPanel(
+
       tabsetPanel(
         
-        tabPanel("Bay Area", 
-                 plotOutput("map_BayArea", height="100%")),      
-        
-        tabPanel("Regional", 
+        tabPanel("Chart", 
                  plotOutput("barchart")),      
+        
+        tabPanel("Map", 
+                 selectInput("region_name", "", choices = REGION_NAMES, selected = "Bay Area"),
+                 plotOutput("map", height="100%")),      
         
         tabPanel("Scatterplot", 
                  fluidRow(
                    column(9,
-                          plotOutput("scatterplot", height="100%")),
+                          plotOutput("scatterplot")), #, height="100%")),
                    column(3,
                           br(),
                           checkboxInput("DensityPath", "Contours", value=FALSE),
