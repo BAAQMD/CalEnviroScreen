@@ -3,36 +3,48 @@
 # consistent with what is in the published XLS file.
 #
 
-context("CES2 scores (all tracts)")
-
+library(CalEnviroScreen)
 library(testthat)
+library(dplyr)
+library(tidyr)
 
-computed_subscores <- CES2_data %>%
+round.tbl <- function (.data, digits) {
+  f <- function (x) round(x, digits = digits)
+  .data %>% mutate_each(funs(f), -FIPS)
+}
+
+computed_subscores <- CES2_data %>% ungroup() %>%
     inner_join(CES2_metadata, by = "Variable") %>%
     group_by(FIPS, Group) %>%
     compute_CES2_subscores(min_obs = 4) %>%
     spread(Group, Subscore) %>%
-    arrange(desc(Pollution))
+    arrange(desc(FIPS))
 
-expected_subscores <- as.tbl(CES2_xls) %>% 
-  select(FIPS, Pollution = PollutionBurdenScore, PopChar = PopCharScore) %>%
-  arrange(desc(Pollution))
+published_subscores <- CES2_scores %>%
+  select(FIPS, Pollution, PopChar) %>%
+  arrange(desc(FIPS))
 
-expect_that(
-  mutate(computed_subscores, Pollution = round(Pollution, 4), PopChar = round(PopChar, 4)),
-  equals(expected_subscores))
+context("CES2 subscores (to 4 digits)")
+
+expect_equal(round(computed_subscores, 4), round(published_subscores, 4))
 
 computed_scores <- computed_subscores %>% 
   compute_CES2_scores() %>%
-  select(FIPS, Score, PercentileRange) %>%
-  filter(!is.na(Score)) %>%
-  arrange(desc(Score))
+  arrange(desc(FIPS))
 
-expected_scores <- as.tbl(CES2_xls) %>% 
-  select(FIPS, Score = CES20Score, PercentileRange) %>%
-  filter(!is.na(Score)) %>%
-  arrange(desc(Score))
+published_scores <- CES2_scores %>% 
+  arrange(desc(FIPS))
 
-expect_that(
-  mutate(computed_scores, Score = round(Score, 8)),
-  equals(expected_scores))
+context("CES2 scores (to 8 digits)")
+
+expect_equal(
+  published_scores %>% select(FIPS, Score), 
+  computed_scores %>% select(FIPS, Score) %>% round(digits=8)
+)
+
+context("CES2 percentile ranges")
+
+expect_equal(
+  published_scores %>% select(FIPS, PercentileRange),
+  computed_scores %>% select(FIPS, PercentileRange)
+)
