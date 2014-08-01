@@ -2,7 +2,7 @@ library(CalEnviroScreen)
 library(dplyr)
 library(tidyr)
 
-data(CalEnviroScreen2, package="CalEnviroScreen")
+data(CES2, package="CalEnviroScreen")
 
 # Indicator values
 (CES2_values <- CES2_data %>% select(-Percentile) %>% 
