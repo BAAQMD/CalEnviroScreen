@@ -24,6 +24,6 @@ CES2_scores %>% filter(FIPS == "06071004900")
 CES2_values %>% 
   gather(Variable, Value, -FIPS) %>%
   group_by(Variable) %>%
-  mutate(Rank = ranks(Value),
-         Percentile = percentiles(Value))
+  mutate(Rank = comp_rank(Value),
+         Percentile = pctl(Value))
 

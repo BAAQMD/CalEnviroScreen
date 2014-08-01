@@ -40,7 +40,7 @@ binned <- function (x, breaks) {
 compute_CES2_scores <- function (.data) {
   .data %>% mutate(
     Score = Pollution * PopChar,
-    Percentile = 100 * normalize(ranks(Score) - 1),
+    Percentile = 100 * normalize(comp_rank(Score) - 1),
     PercentileRange = binned(Percentile, CES2_percentile_breaks))
 }
 
