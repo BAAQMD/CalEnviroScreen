@@ -3,10 +3,12 @@
 \alias{compute_CES2_scores}
 \title{To compute CES2 scores}
 \usage{
-compute_CES2_scores(.data)
+compute_CES2_scores(.data, breaks = CES2_PERCENTILE_BREAKS)
 }
 \arguments{
 \item{.data}{a dplyr::tbl}
+
+\item{breaks}{named numeric vector}
 }
 \description{
 To compute CES2 scores

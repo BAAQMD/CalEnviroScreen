@@ -8,7 +8,7 @@ binned(x, breaks)
 \arguments{
 \item{x}{vector}
 
-\item{breaks}{breaks}
+\item{breaks}{named numeric vector}
 }
 \description{
 To bin percentiles

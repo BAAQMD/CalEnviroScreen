@@ -10,8 +10,8 @@ License: Public domain
 LazyData: true
 Depends:
     R (>= 2.10),
-    stringr,
     dplyr,
+    stringr,
     sp,
     XML,
     rgdal

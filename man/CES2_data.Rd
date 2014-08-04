@@ -3,14 +3,39 @@
 \name{CES2_data}
 \alias{CES2_data}
 \title{CalEnviroScreen 2.0 data}
-\format{data.frame}
+\format{A data frame with 8035 rows and 20 variables}
 \source{
 \url{http://oehha.ca.gov/ej/ces2.html}
 }
 \usage{
-CES2_data
+data(CES2); CES2_data
 }
 \description{
-Published data for CalEnviroScreen 2.0, with percentiles replicated from inferred methods
+A dataset containing tract-level indicators used as inputs for CalEnviroScreen 2.0.
+The variables are as follows:
+
+\itemize{
+  \item FIPS. The FIPS code for the census tract.
+  \item Age. Percent of population under age 10 or over age 65.
+  \item Asthma. Spatially modeled, age-adjusted rate of emergency department (ED) visits for asthma per 10,000 (averaged over 2007-2009).
+  \item LBW. Percent low birth weight (< 2500 g), spatially modeled (averaged over 2006-2009).
+  \item Edu. Percent of the population over age 25 with less than a high school education (5-year estimate, 2008-2012).
+  \item LingIso. Percentage of households in which no one age 14 and over speaks English "very well" or speaks English only.
+  \item Poverty. Percent of the population living below two times the federal poverty level (5-year estimate, 2008-2012).
+  \item Unemp. Percent of the population over age 16 that is unemployed and eligible for the labor force (5-year estimate, 2008-2012).
+  \item Ozone. Portion of the daily maximum 8-hour ozone concentration over the California 8-hour standard (0.070 ppm), averaged over three years (2009 to 2011).
+  \item PM25. Annual mean concentration of PM2.5 (average of quarterly means), over three years (2009-2011).
+  \item DieselPM. Spatial distribution of gridded diesel PM emissions from on-road and non-road sources for a 2010 summer day in July (kg/day).
+  \item DrinkWat. Toxicity-weighted drinking water quality index for selected contaminants.
+  \item PestUse. Total pounds of selected active pesticide ingredients (filtered for hazard and volatility) used in production-agriculture per square mile.
+  \item ToxRel. Toxicity-weighted concentrations of modeled chemical releases to air from facility emissions and off-site incineration.
+  \item Traffic. Sum of traffic volumes adjusted by road segment length (vehicle-kilometers per hour) divided by total road length (kilometers) within 150 meters of the census tract boundary.
+  \item Cleanup. Sum of weighted cleanup sites within each census tract.
+  \item GndWat. Sum of weighted GeoTracker scores for sites within each census tract.
+  \item HazWaste. Sum of weighted permitted hazardous waste facilities and hazardous waste generators within each census tract.
+  \item ImpWat. Summed number of pollutants across all water bodies designated as impaired within the area.
+  \item SolWaste. Sum of weighted solid waste sites and facilities.
 }
+}
+\keyword{datasets}
 

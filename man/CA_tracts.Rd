@@ -3,7 +3,7 @@
 \name{CA_tracts}
 \alias{CA_tracts}
 \title{California census tracts}
-\format{SpatialPolygonsDataFrame}
+\format{A SpatialPolygonsDataFrame}
 \source{
 \url{http://oehha.ca.gov/ej/ces2.html}
 }

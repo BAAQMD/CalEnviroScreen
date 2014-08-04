@@ -15,7 +15,7 @@ weighted_average <- function (x, w, na.rm=TRUE) {
 compute_CES2_subscores <- function (.data, min_obs=4, ...) {
   .data %>% 
     filter(!is.na(Pctl)) %>%
-    summarise(Subscore = ifelse(n() < min_obs, NA, weighted_average(Pctl, Weight) / 10))
+    dplyr::summarise(Subscore = ifelse(n() < min_obs, NA, weighted_average(Pctl, Weight) / 10))
 }
 
 #' To normalize a vector
@@ -28,7 +28,7 @@ normalize <- function (x, na.rm=TRUE) {
 
 #' To bin percentiles
 #' @param x vector
-#' @param breaks breaks
+#' @param breaks named numeric vector
 #' @export
 binned <- function (x, breaks) {
   cut(x, c(breaks, Inf), names(breaks), include.lowest=TRUE, ordered=TRUE)
@@ -36,11 +36,12 @@ binned <- function (x, breaks) {
 
 #' To compute CES2 scores
 #' @param .data a dplyr::tbl
+#' @param breaks named numeric vector
 #' @export
-compute_CES2_scores <- function (.data) {
+compute_CES2_scores <- function (.data, breaks=CES2_PERCENTILE_BREAKS) {
   .data %>% mutate(
     Score = Pollution * PopChar,
     Percentile = 100 * normalize(comp_rank(Score) - 1),
-    PercentileRange = binned(Percentile, CES2_percentile_breaks))
+    Range = binned(Percentile, breaks))
 }
 
