@@ -1,8 +1,8 @@
 Package: CalEnviroScreen
 Type: Package
 Title: CalEnviroScreen
-Version: 2.0-3
-Date: 2014-07-07
+Version: 2.0-4
+Date: 2014-08-05
 Author: David Holstius
 Maintainer: David Holstius <dholstius@baaqmd.gov>
 Description: Provides CalEnviroScreen data in R format
