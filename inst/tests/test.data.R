@@ -2,9 +2,9 @@ library(testthat)
 library(dplyr)
 library(CalEnviroScreen)
 
-data(CES2_data, package = "CalEnviroScreen")
+data(CES2, package = "CalEnviroScreen")
 
-context("CES2 data (example tract)")
+context("CES2 data (for example tract)")
 
 # Check that raw values agree for the example tract given in OEHHA documentation 
 # FIXME: rounding error: 
@@ -15,13 +15,14 @@ is_approximately <- function (value) equals(value, tolerance=0.005, scale=1)
 
 example_FIPS <- "06071004900"
 example_data <- subset(CES2_data, FIPS == example_FIPS)
+example_scores <- subset(CES2_scores, FIPS == example_FIPS)
 
 with(example_data, {
   
   expect_that(Ozone,    is_approximately(0.79))
-  expect_that(PM25,     is_approximately(14.68))
+  expect_that(PM25,     is_approximately(12.31))  # was: 14.68
   expect_that(DieselPM, is_approximately(23.35))
-  expect_that(DrinkWat, is_approximately(64.34))
+  expect_that(DrinkWat, is_approximately(533.17389))  # was: 64.34
   expect_that(PestUse,  equals(0))
   expect_that(ToxRel,   is_approximately(851.43))
   expect_that(Traffic,  is_approximately(1484.85))
@@ -42,3 +43,8 @@ with(example_data, {
   expect_that(Unemp,    is_approximately(19.84))
   
 })
+
+round.tbl <- function (.data, digits) {
+  f <- function (x) round(x, digits = digits)
+  .data %>% mutate_each(funs(f), -FIPS)
+}

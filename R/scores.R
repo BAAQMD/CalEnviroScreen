@@ -7,15 +7,27 @@ weighted_average <- function (x, w, na.rm=TRUE) {
   sum(x * w, na.rm=na.rm) / sum(w, na.rm=na.rm)
 }
 
-#' To compute CES2 subscores (requires pre-calculated Pctl column)
+#' To average CES2 percentiles
 #' @param .data a dplyr::tbl
 #' @param min_obs minimum number of observations in a group (else NA)
 #' @param \dots ignored
 #' @export
-compute_CES2_subscores <- function (.data, min_obs=4, ...) {
+compute_CES2_avg_pctls <- function (.data, min_obs, ...) {
   .data %>% 
-    filter(!is.na(Pctl)) %>%
-    dplyr::summarise(Subscore = ifelse(n() < min_obs, NA, weighted_average(Pctl, Weight) / 10))
+    filter(!is.na(Pctl)) %>% 
+    summarise(AvgPctl = ifelse(n() < min_obs, NA, weighted_average(Pctl, Weight))) %>%
+    spread(Group, AvgPctl)
+}
+
+#' To compute CES2 subscores
+#' @param .data a dplyr::tbl
+#' @param min_obs minimum number of observations in a group (else NA)
+#' @param \dots ignored
+#' @export
+compute_CES2_subscores <- function (.data, min_obs, ...) {
+  .data %>% 
+    compute_CES2_avg_pctls(min_obs = min_obs) %>%
+    mutate_each(funs(Subscore = 10 * round(., 3) / round(max(., na.rm=TRUE), 3)), -FIPS)
 }
 
 #' To normalize a vector
