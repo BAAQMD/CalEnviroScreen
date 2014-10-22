@@ -13,5 +13,4 @@ Depends:
     dplyr,
     stringr,
     sp,
-    XML,
-    rgdal
+    XML
