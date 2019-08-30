@@ -1,20 +1,23 @@
 suppressPackageStartupMessages({
+  #library(plyr)
   library(sp)
-  library(reshape2)
-  library(tidyr)
   library(functional)
   library(ggplot2)
   library(grid)
   library(rgeos)
   library(scales)
-  library(plyr)
-  library(dplyr)
   library(ggvis)
   library(shinyIncubator)
   library(CalEnviroScreen)
+  library(dplyr)
+  library(tidyr)
+  library(ensurer)
 })
 
 set.seed(0)
+
+LOG_LEVEL <- ordered("INFO", levels = c("DEBUG", "INFO", "WARNING", "ERROR"))
+info <- function (...) if (LOG_LEVEL >= "INFO") message(...)
 
 data(CES2, package = "CalEnviroScreen")
 data(CES2_metadata, package = "CalEnviroScreen")
@@ -38,18 +41,31 @@ scale_y_score <- function (...) scale_y_continuous(..., limits=c(0, 10), expand=
 
 region_colors <- c(`Bay Area`="#009E73", `South Coast`="#0072B2", `San Joaquin`="#D55E00", `Other`="#999999")
 
-region_tbl <- do.call(rbind, lapply(names(CA_regions), function (x) as.tbl(data.frame(FIPS = as.character(CA_regions[[x]]$FIPS), Region = x))))
+region_tbl <- names(CA_regions) %>% 
+  lapply(. %>% data_frame(FIPS = CA_regions[[.]]$FIPS, Region = .)) %>% 
+  bind_rows
+
 with_region <- function (.data) .data %>% inner_join(region_tbl, by = "FIPS")
 
 ###############################################################################
 # Define server logic
 ###############################################################################
 
+DEBUGGING <- as.logical(interactive())
+if (DEBUGGING) {
+  reactive <- exprToFunction
+  input <- list(impacted_percentile = 25,
+                region_name = "Bay Area",
+                popchar_vars = CES2_POPCHAR_VARS,
+                pollution_vars = CES2_POLLUTION_VARS) %>% append(as.list(CES2_WEIGHTS))
+}
+
 shinyServer(function(input, output, session) {
   
   .map_tracts <- reactive({
     #subset(CA_tracts, Region == input$region_name)
-    fips <- filter(tract_tbl, Region == input$region_name)$FIPS
+    #fips <- filter(tract_tbl, Region == input$region_name)$FIPS
+    fips <- filter(region_tbl, Region == input$region_name)$FIPS
     CA_tracts[fips,]
   })
   
@@ -72,18 +88,20 @@ shinyServer(function(input, output, session) {
   })
   
   .group_tbl <- reactive({
-    as.tbl(data.frame(Variable = c(CES2_POLLUTION_VARS, CES2_POPCHAR_VARS))) %>%
-      mutate(Group = factor(ifelse(Variable %in% CES2_POPCHAR_VARS, "PopChar", "Pollution"))
+    data_frame(Variable = c(CES2_POLLUTION_VARS, CES2_POPCHAR_VARS)) %>%
+      mutate(Group = ifelse(Variable %in% CES2_POPCHAR_VARS, "PopChar", "Pollution"))
   })
   
   .weight_tbl <- reactive({
     w <- c(.pollution_weights(), .popchar_weights())
-    as.tbl(data.frame(Variable = names(w), Weight = w))
+    data_frame(Variable = names(w), Weight = w)
   })
   
   .pctls_tbl <- reactive({
     CES2_pctls %>% 
       gather(Variable, Pctl, -FIPS) %>%
+      mutate(Variable = as.character(Variable)) %>%
+      filter(!is.na(Pctl)) %>%
       inner_join(.group_tbl(), by = "Variable") %>%
       group_by(FIPS, Group)  
   })
@@ -93,7 +111,8 @@ shinyServer(function(input, output, session) {
       inner_join(.weight_tbl(), by = "Variable") %>%
       filter(Variable %in% .variables()) %>%
       compute_CES2_subscores(min_obs = 4) %>%
-      spread(Group, Subscore) %>%
+      ensure(names(.) %>% setequal(c("FIPS", "Pollution", "PopChar"))) %>%
+      #spread(Group, Subscore) %>%
       arrange(desc(FIPS))
   })
   
@@ -105,8 +124,12 @@ shinyServer(function(input, output, session) {
       if (is.null(subscores$Pollution)) 
         subscores$Pollution <- 1 
     }
+    all_positive <- function (x) is.finite(x) & (x >= 0)
     subscores %>% 
+      #ensure(all_positive(.$PopChar)) %>%
+      #ensure(all_positive(.$Pollution)) %>%
       compute_CES2_scores() %>%
+      #ensure(!any(is.na(Percentile))) %>%
       arrange(desc(Score)) %>%
       with_region()
   })
@@ -123,11 +146,16 @@ shinyServer(function(input, output, session) {
   .tally <- reactive({
     .score_tbl() %>% 
       group_by(Region) %>% 
-      summarise(Tracts=n(), Yes=sum(Percentile > .impacted_percentile()), No=Tracts-Yes)
+      summarise(Tracts = n(), 
+                Yes = sum(Percentile > .impacted_percentile(), na.rm = TRUE), 
+                No = Tracts - Yes, 
+                `%` = round(100 * Yes / Tracts, digits = 1), 
+                `n/a` = sum(is.na(Percentile)))
+      #summarise(Tracts=n(), Yes=sum(Percentile > .impacted_percentile()), No=Tracts-Yes)
   })
   
   .scatterplot <- reactive({
-    fig_tbl <- .score_tbl() %>% mutate(Sampled = as.logical(rbinom(n(), 1, prob = input$SampleTracts / 100)))
+    fig_tbl <- .score_tbl() %>% mutate(N = n(), Sampled = as.logical(rbinom(N, 1, prob = input$SampleTracts / 100)))
     cutoff_function <- function (x) {
       ifelse(x < .popchar_intercept() | x > .popchar_maximum(), NA, .score_cutoff() / x)
     }
@@ -152,11 +180,14 @@ shinyServer(function(input, output, session) {
   
   .barchart <- reactive({
     .tally() %>% 
-      melt(measure.vars = c("No", "Yes"), variable.name = "Impacted", value.name = "Freq") %>% 
-      transform(Frac = Freq / Tracts) %>% 
+      select(Region, Tracts, Yes, No, `n/a`) %>%
+      gather(Impacted, Freq, Yes, No, `n/a`) %>%
+      mutate(Frac = Freq / Tracts) %>%
+      #melt(measure.vars = c("No", "Yes"), variable.name = "Impacted", value.name = "Freq") %>% 
+      #transform(Frac = Freq / Tracts) %>% 
       ggplot(aes(x=Region, y=Freq)) + 
       geom_bar(aes(fill=Impacted), stat="identity") + 
-      scale_fill_manual(values=c(gray(0.7), gray(0.4))) +
+      scale_fill_manual(values=c(Yes = "red", No = gray(0.7), `n/a` = gray(0.3))) +
       scale_y_continuous(limits=c(0, 4500), expand=c(0, 0)) +
       geom_text(aes(y=Tracts, label=str_c(percent(round(Yes/Tracts, 2)), " (n=", Yes, ")")), data=.tally(), vjust=-0.5) + 
       theme(legend.position="none", axis.title=element_blank())

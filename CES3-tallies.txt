@@ -1,0 +1,15 @@
+With (current) half-weights:
+
+     Region            Tracts              DACs             Share
+   Bay Area             1,539                58              2.9%
+South Coast             3,569             1,375             69.1%
+San Joaquin               735               434             21.8%
+      Other             2,192               123              6.2%
+
+With uniform weights:
+
+     Region            Tracts              DACs             Share
+   Bay Area             1,539               126              6.3%
+South Coast             3,569             1,287             64.7%
+San Joaquin               735               405             20.4%
+      Other             2,192               172              8.6%
